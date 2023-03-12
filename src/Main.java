@@ -1,6 +1,6 @@
 import Tasks.Base.Task;
-import Tasks.AccessListForObjects.AccessMatrixTask;
-import Tasks.AccessMatrix.AccessListTask;
+import Tasks.AccessMatrix.AccessMatrixTask;
+import Tasks.AccessListForObjects.AccessListTask;
 import Tasks.CapabilitiesListForDomains.CapabilityListTask;
 
 public final class Main {

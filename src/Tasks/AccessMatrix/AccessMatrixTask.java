@@ -2,12 +2,12 @@ package Tasks.AccessMatrix;
 
 import Tasks.Base.Task;
 
-public final class AccessListTask extends Task {
+public final class AccessMatrixTask extends Task {
 
     // Task related fields
 
-    public AccessListTask() {
-        super("Access List For Objects (-S 2)");
+    public AccessMatrixTask() {
+        super("Access Matrix (-S 1)");
     }
 
     @Override
