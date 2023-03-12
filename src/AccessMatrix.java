@@ -21,10 +21,10 @@ public class AccessMatrix {
         // populate access matrix randomly
         for (int i = 0; i < N; i++) {
             Random random = new Random();
-            int Rindex = random.nextInt(Rights.length);
+            int Rindex = random.nextInt(Rights.length); //rindex is rights index
             
             Random srand = new Random();
-            int Sindex = srand.nextInt(Switch.length);
+            int Sindex = srand.nextInt(Switch.length); //sindex is switch index
 
             for (int j = 0; j < M + N; j++) {
                 // allow switching into other domains (excluding own domain)
