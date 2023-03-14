@@ -2,11 +2,11 @@ import java.util.Random;
 
 public class AccessMatrix {
     public static void main(String[] args) {
-        String[] Rights = {"R","W","RW"};
+        String[] Rights = {"R","W","RW","-"};
 
 
 
-        String[] Switch = {"allow","do not allow"};
+        String[] Switch = {"allow","null"};
 
 
 
@@ -23,20 +23,17 @@ public class AccessMatrix {
         // populate access matrix randomly
         for (int i = 0; i < N; i++) {
             Random random = new Random();
-            int Rindex = random.nextInt(Rights.length); //rindex is rights index
-            
             Random srand = new Random();
-            int Sindex = srand.nextInt(Switch.length); //sindex is switch index
 
             for (int j = 0; j < M + N; j++) {
                 // allow switching into other domains (excluding own domain)
                 if (j >= M && j < M + N && i != j - M) {
-                    accessMatrix[i][j] = Switch[srand.nextInt(Switch.length)];
+                    accessMatrix[i][j] = Switch[srand.nextInt(Switch.length)]; //switch index
 
                 }
                 // set access rights for objects
                 else if (j < M) {
-                    accessMatrix[i][j] = Rights[random.nextInt(Rights.length)];
+                    accessMatrix[i][j] = Rights[random.nextInt(Rights.length)]; //rights index
                 }
             }
         }
