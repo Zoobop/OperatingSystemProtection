@@ -12,8 +12,10 @@ public class AccessMatrix {
 
         // generate random values for N and M in the range [3,7]
         Random rand = new Random();
-        int N = rand.nextInt(5) + 3;
-        int M = rand.nextInt(5) + 3;
+        int N = rand.nextInt(3,7);
+        System.out.println(N);
+        int M = rand.nextInt(3,7);
+        System.out.println(M);
 
         // create access matrix of size N x (M + N)
         String[][] accessMatrix = new String[N][M + N];
@@ -29,12 +31,12 @@ public class AccessMatrix {
             for (int j = 0; j < M + N; j++) {
                 // allow switching into other domains (excluding own domain)
                 if (j >= M && j < M + N && i != j - M) {
-                    accessMatrix[i][j] = Switch[Sindex];
+                    accessMatrix[i][j] = Switch[srand.nextInt(Switch.length)];
 
                 }
                 // set access rights for objects
                 else if (j < M) {
-                    accessMatrix[i][j] = Rights[Rindex];
+                    accessMatrix[i][j] = Rights[random.nextInt(Rights.length)];
                 }
             }
         }
