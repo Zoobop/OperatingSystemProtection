@@ -1,9 +1,10 @@
 public class CapabilityList {
     private static class Node {
-        String object;
-        boolean hasAccess;
-        Node next;
+        String object;//objects in the list
+        boolean hasAccess;//whether access is granted
+        Node next;//next node in the list
 
+        //nodes in the capability list
         Node(String object, boolean hasAccess) {
             this.object = object;
             this.hasAccess = hasAccess;
@@ -11,12 +12,14 @@ public class CapabilityList {
     }
 
     private Node head;
-    private int size;
+    private int size;//size of capability list
+
 
     public CapabilityList(int size) {
         this.size = size;
     }
 
+    //capabilities by object and whether it has access
     public void addCapability(String object, boolean hasAccess) {
         if (head == null) {
             head = new Node(object, hasAccess);
@@ -29,6 +32,7 @@ public class CapabilityList {
         }
     }
 
+    //if object has access by domain
     public boolean hasAccess(String object, int domainIndex) {
         if (domainIndex < 0 || domainIndex >= size) {
             throw new IndexOutOfBoundsException("Domain index out of bounds");
