@@ -5,19 +5,19 @@ import Tasks.Shared.Helpers.TaskHelpers;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public final class AccessOperator implements Runnable {
+public final class User implements Runnable {
 
     private final IProtectionTask task;
     private final Thread thread;
-    private final int id;
+    private final int threadId;
     private int domainId;
     private final int maxNumberOfRequests;
 
-    public AccessOperator(int id, int numberOfRequests, IProtectionTask task) {
-        this.id = id;
+    public User(int threadId, int numberOfRequests, IProtectionTask task) {
+        this.threadId = threadId;
         maxNumberOfRequests = numberOfRequests;
         this.task = task;
-        domainId = id;
+        domainId = threadId;
         thread = new Thread(this);
     }
 
@@ -39,45 +39,37 @@ public final class AccessOperator implements Runnable {
             Request();
         }
 
-        final var requestsCompleteText = TaskHelpers.THREAD_REQUESTS_COMPLETE.formatted(id);
+        final var requestsCompleteText = TaskHelpers.THREAD_REQUESTS_COMPLETE.formatted(threadId);
         System.out.println(requestsCompleteText);
     }
 
     private void Request() {
         // Get random object within current domain
-        final AccessObject accessObject = task.GetRandomEntry(domainId);
+        final AccessObject accessObject = task.GetRandomObject(domainId);
         final Operation operation = TaskHelpers.GetRandomOperation(accessObject.Type);
 
         // Get text for operation
-        final String attemptText = TaskHelpers.GetAttemptText(operation, id, domainId, accessObject);
-        final String operationText = TaskHelpers.GetOperationText(operation, id, domainId, accessObject);
+        final String attemptText = TaskHelpers.GetAttemptText(threadId, operation, accessObject);
+        final String operationText = TaskHelpers.GetOperationText(threadId, operation, accessObject);
 
         // Attempt request
         System.out.println(attemptText);
 
-        // Acquire semaphore of entry
-        task.AcquireSemaphore(domainId, accessObject.Index);
+        // Acquire semaphore of object
+        task.AcquireSemaphore(accessObject);
 
-        // Try operation on entry
-        var operationResult = task.TryOperateOnEntry(operation, domainId, accessObject);
-        if (operationResult.IsSuccess()) {
-            System.out.println(operationText);
-        }
-
-        // Yield for some cycles
-        Yield();
-
-        // Release semaphore of entry
-        task.ReleaseSemaphore(domainId, accessObject.Index);
+        // Try operation on object based on permissions (arbitrator function)
+        final var operationResult = task.ProcessOperationRequest(operation, accessObject);
 
         // Reassign domain (in case of domain switch operation)
         domainId = operationResult.DomainId();
 
-        final String operationCompleteText = TaskHelpers.THREAD_OPERATION_COMPLETE.formatted(id, domainId);
-        final String operationFailedText = TaskHelpers.THREAD_OPERATION_FAILED.formatted(id, domainId);
+        final String operationCompleteText = TaskHelpers.THREAD_OPERATION_COMPLETE.formatted(threadId, domainId);
+        final String operationFailedText = TaskHelpers.THREAD_OPERATION_FAILED.formatted(threadId, domainId);
 
         // Display operation success/failure
         if (operationResult.IsSuccess()) {
+            System.out.println(operationText);
             System.out.println(operationCompleteText);
         } else {
             System.out.println(operationFailedText);
@@ -85,11 +77,14 @@ public final class AccessOperator implements Runnable {
 
         // Yield for some cycles
         Yield();
+
+        // Release semaphore of object
+        task.ReleaseSemaphore(accessObject);
     }
 
     private void Yield() {
         var random = ThreadLocalRandom.current().nextInt(3, 7);
-        final String yieldText = TaskHelpers.THREAD_YIELD.formatted(id, domainId, random);
+        final String yieldText = TaskHelpers.THREAD_YIELD.formatted(threadId, domainId, random);
         System.out.println(yieldText);
         for (var i = 0; i < random; i++) {
             Thread.yield();

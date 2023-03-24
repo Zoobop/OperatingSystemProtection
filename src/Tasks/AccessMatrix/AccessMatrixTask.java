@@ -15,7 +15,7 @@ public final class AccessMatrixTask extends Task implements IProtectionTask {
     // Task related fields
     private IAccessible accessMatrix;
     private Semaphore[][] semaphores;
-    private AccessOperator[] accessOperators;
+    private User[] users;
 
     public AccessMatrixTask() {
         super("Access Matrix (-S 1)");
@@ -34,13 +34,13 @@ public final class AccessMatrixTask extends Task implements IProtectionTask {
         accessMatrix.Randomize();
 
         // Create threads to operate on access matrix
-        var numberOfRequests = rand.nextInt(5, 10);
-        accessOperators = new AccessOperator[domains];
-        for (var i = 0; i < accessOperators.length; i++) {
-            accessOperators[i] = new AccessOperator(i, numberOfRequests, this);
+        var numberOfRequests = rand.nextInt(5, 9);
+        users = new User[domains];
+        for (var i = 0; i < users.length; i++) {
+            users[i] = new User(i, numberOfRequests, this);
         }
 
-        // Create semaphores for access matrix entries
+        // Create semaphores for access matrix objects
         semaphores = new Semaphore[domains][domains + objects];
         for (var i = 0; i < semaphores.length; i++) {
             for (int j = 0; j < semaphores[0].length; j++) {
@@ -60,46 +60,46 @@ public final class AccessMatrixTask extends Task implements IProtectionTask {
         accessMatrix.PrintData();
 
         // Start threads
-        Arrays.stream(accessOperators).forEach(AccessOperator::start);
+        Arrays.stream(users).forEach(User::start);
         // Wait for threads to finish for program end
-        Arrays.stream(accessOperators).forEach(AccessOperator::join);
+        Arrays.stream(users).forEach(User::join);
     }
 
     @Override
-    public void AcquireSemaphore(int domainId, int objectId) {
-        semaphores[domainId][objectId].acquireUninterruptibly();
+    public void AcquireSemaphore(final AccessObject accessObject) {
+        semaphores[accessObject.DomainId][accessObject.Index].acquireUninterruptibly();
     }
 
     @Override
-    public void ReleaseSemaphore(int domainId, int objectId) {
-        semaphores[domainId][objectId].release();
+    public void ReleaseSemaphore(final AccessObject accessObject) {
+        semaphores[accessObject.DomainId][accessObject.Index].release();
     }
 
     @Override
-    public AccessObject GetRandomEntry(int domainId) {
-        return accessMatrix.GetRandomEntry(domainId);
+    public AccessObject GetRandomObject(int domainId) {
+        return accessMatrix.GetRandomObject(domainId);
     }
 
     @Override
-    public OperationResult TryOperateOnEntry(Operation operation, int domainId, final AccessObject accessObject) {
+    public OperationResult ProcessOperationRequest(Operation operation, final AccessObject accessObject) {
 
         var isSuccess = true;
-        var newDomainId = domainId;
+        var newDomainId = accessObject.DomainId;
 
         if (accessObject.AccessRight == AccessRight.ReadOnly && operation == Operation.Read) {
             // Read message
         }
         else if (accessObject.AccessRight == AccessRight.WriteOnly && operation == Operation.Write) {
-            accessObject.Message = TaskHelpers.MESSAGES[domainId];
+            accessObject.Message = TaskHelpers.MESSAGES[accessObject.DomainId];
         }
         else if (accessObject.AccessRight == AccessRight.ReadWrite && operation == Operation.Write) {
-            accessObject.Message = TaskHelpers.MESSAGES[domainId];
+            accessObject.Message = TaskHelpers.MESSAGES[accessObject.DomainId];
         }
         else if (accessObject.AccessRight == AccessRight.ReadWrite && operation == Operation.Read) {
             // Read message
         }
         else if (accessObject.AccessRight == AccessRight.AllowSwitch && operation == Operation.DomainSwitch) {
-            newDomainId = accessObject.Index - accessMatrix.GetObjectCount();
+            newDomainId = accessObject.ObjectId;
         }
         else {
             isSuccess = false;

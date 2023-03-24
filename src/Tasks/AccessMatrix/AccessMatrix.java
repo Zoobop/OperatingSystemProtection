@@ -19,14 +19,21 @@ public final class AccessMatrix implements IAccessible {
     }
 
     @Override
-    public AccessObject GetEntry(int domainIndex, int objectIndex) {
-        return _data[domainIndex][objectIndex];
+    public AccessObject GetObject(int domainId, int index) {
+        return _data[domainId][index];
     }
 
     @Override
-    public AccessObject GetRandomEntry(int domainIndex) {
-        final int randomIndex = ThreadLocalRandom.current().nextInt(_data.length);
-        return _data[domainIndex][randomIndex];
+    public AccessObject GetRandomObject(int domainId) {
+        var randomIndex = ThreadLocalRandom.current().nextInt(_data.length);
+        // Ensure not accessing same domain (if applicable)
+        var object = _data[domainId][randomIndex];
+        while (object.Type == EntryType.Domain && object.ObjectId == domainId)
+        {
+            randomIndex = ThreadLocalRandom.current().nextInt(_data.length);
+            object = _data[domainId][randomIndex];
+        }
+        return object;
     }
 
     @Override
@@ -40,23 +47,26 @@ public final class AccessMatrix implements IAccessible {
         final AccessRight[] rights = AccessRight.values();
 
         var random = ThreadLocalRandom.current();
-        for (int i = 0; i < _domains; i++) {
+        for (var domaindId = 0; domaindId < _domains; domaindId++) {
             // Create objects
-            for (int j = 0; j < _objects; j++) {
-                var right = rights[random.nextInt(4)];
-                _data[i][j] = new AccessObject(j, j, right, EntryType.Object); //rights index
+            for (var index = 0; index < _objects; index++) {
+                final var objectId = index;
+                final var objectRight = rights[random.nextInt(4)];
+                _data[domaindId][index] = new AccessObject(domaindId, objectId, index, objectRight, EntryType.File); //rights index
             }
 
             // Create domains
-            for (var j = _objects; j < _domains + _objects; j++) {
+            for (var index = _objects; index < _domains + _objects; index++) {
+                final var objectId = index - _objects;
+
                 // Check for switching to same domain
-                if (i + _objects == j) {
-                    _data[i][j] = new AccessObject(j - _objects, j, AccessRight.SameDomain, EntryType.Domain);
+                if (domaindId == objectId) {
+                    _data[domaindId][index] = new AccessObject(domaindId, objectId, index, AccessRight.SameDomain, EntryType.Domain);
                     continue;
                 }
 
-                var right = rights[random.nextInt(4, rights.length - 1)];
-                _data[i][j] = new AccessObject(j - _objects, j, right, EntryType.Domain); //switch index
+                final var domainRight = rights[random.nextInt(4, rights.length - 1)];
+                _data[domaindId][index] = new AccessObject(domaindId, objectId, index, domainRight, EntryType.Domain); //switch index
             }
         }
     }

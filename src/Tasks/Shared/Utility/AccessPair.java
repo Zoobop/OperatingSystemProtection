@@ -5,8 +5,8 @@ public final class AccessPair {
     public AccessObject AccessObject;
     public AccessNode Node;
 
-    public AccessPair(AccessObject accessObject, AccessNode node) {
+    public AccessPair(AccessObject accessObject) {
         AccessObject = accessObject;
-        Node = node;
+        Node = null;
     }
 }

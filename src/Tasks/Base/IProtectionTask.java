@@ -6,8 +6,8 @@ import Tasks.Shared.Utility.OperationResult;
 
 public interface IProtectionTask {
 
-    void AcquireSemaphore(int domainId, int objectId);
-    void ReleaseSemaphore(int domainId, int objectId);
-    AccessObject GetRandomEntry(int domainId);
-    OperationResult TryOperateOnEntry(Operation operation, int domainId, final AccessObject accessObject);
+    void AcquireSemaphore(final AccessObject accessObject);
+    void ReleaseSemaphore(final AccessObject accessObject);
+    AccessObject GetRandomObject(int domainId);
+    OperationResult ProcessOperationRequest(Operation operation, final AccessObject accessObject);
 }

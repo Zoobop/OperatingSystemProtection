@@ -31,11 +31,11 @@ public final class TaskHelpers {
     public static final String THREAD_OPERATION_COMPLETE = "[Thread %d (D%d)] Operation complete.";
     public static final String THREAD_OPERATION_FAILED = "[Thread %d (D%d)] Operation failure: Permission Denied.";
     public static final String THREAD_YIELD = "[Thread %d (D%d)] Yielding for %d cycles.";
-    public static final String THREAD_REQUESTS_COMPLETE = "[Thread %d] All requests have been tried.";
+    public static final String THREAD_REQUESTS_COMPLETE = "[Thread %d] ALL REQUESTS HAVE BEEN TRIED.";
 
     public static Operation GetRandomOperation(EntryType type) {
         switch (type) {
-            case Object -> {
+            case File -> {
                 var random = new Random();
                 return random.nextBoolean() ? Operation.Read : Operation.Write;
             }
@@ -46,19 +46,19 @@ public final class TaskHelpers {
         }
     }
 
-    public static String GetAttemptText(Operation operation, int threadId, int domainId, final AccessObject accessObject) {
+    public static String GetAttemptText(int threadId, Operation operation, final AccessObject accessObject) {
         return switch (operation) {
-            case Read -> TaskHelpers.THREAD_ATTEMPT_READ_MESSAGE.formatted(threadId, domainId, accessObject.Id);
-            case Write -> TaskHelpers.THREAD_ATTEMPT_WRITE_MESSAGE.formatted(threadId, domainId, accessObject.Id);
-            case DomainSwitch -> TaskHelpers.THREAD_ATTEMPT_SWITCH_DOMAIN.formatted(threadId, domainId, accessObject.Id);
+            case Read -> TaskHelpers.THREAD_ATTEMPT_READ_MESSAGE.formatted(threadId, accessObject.DomainId, accessObject.ObjectId);
+            case Write -> TaskHelpers.THREAD_ATTEMPT_WRITE_MESSAGE.formatted(threadId, accessObject.DomainId, accessObject.ObjectId);
+            case DomainSwitch -> TaskHelpers.THREAD_ATTEMPT_SWITCH_DOMAIN.formatted(threadId, accessObject.DomainId, accessObject.ObjectId);
         };
     }
 
-    public static String GetOperationText(Operation operation, int threadId, int domainId, final AccessObject accessObject) {
+    public static String GetOperationText(int threadId, Operation operation, final AccessObject accessObject) {
         return switch (operation) {
-            case Read -> TaskHelpers.THREAD_READ_MESSAGE.formatted(threadId, domainId, accessObject.Message, accessObject.Id);
-            case Write -> TaskHelpers.THREAD_WRITE_MESSAGE.formatted(threadId, domainId, TaskHelpers.MESSAGES[domainId], accessObject.Id);
-            case DomainSwitch -> TaskHelpers.THREAD_SWITCH_DOMAIN.formatted(threadId, domainId, accessObject.Id);
+            case Read -> TaskHelpers.THREAD_READ_MESSAGE.formatted(threadId, accessObject.DomainId, accessObject.Message, accessObject.ObjectId);
+            case Write -> TaskHelpers.THREAD_WRITE_MESSAGE.formatted(threadId, accessObject.DomainId, TaskHelpers.MESSAGES[accessObject.DomainId], accessObject.ObjectId);
+            case DomainSwitch -> TaskHelpers.THREAD_SWITCH_DOMAIN.formatted(threadId, accessObject.DomainId, accessObject.ObjectId);
         };
     }
 }

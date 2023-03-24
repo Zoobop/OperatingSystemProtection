@@ -18,39 +18,46 @@ public final class AccessList implements IAccessible {
     }
 
     @Override
-    public AccessObject GetEntry(int domainId, int objectId) {
+    public AccessObject GetObject(int domainId, int objectIndex) {
 
-        final var accessPair = _data.get(objectId);
+        final var accessPair = _data.get(objectIndex);
         final var object = accessPair.AccessObject;
         final var node = accessPair.Node;
 
         assert node != null;
 
         // Search for access object within domain
-        final var id = object.Type == EntryType.Object ? objectId : objectId - _objects;
         var iter = node;
         while (iter != null) {
             // Found access object
-            if (iter.AccessObject.Id == domainId) {
-                if (id == domainId)
-                    break;
-                return new AccessObject(id, domainId, iter.AccessObject.AccessRight, object.Type);
+            final var currentObject = iter.AccessObject;
+            if (currentObject.DomainId == domainId) {
+                return new AccessObject(domainId, object.ObjectId, object.Index, currentObject.AccessRight, object.Type);
             }
 
             iter = iter.Next;
         }
 
         // Create invalid access object
-        final var accessRight = object.Type == EntryType.Object ?
+        final var accessRight = object.Type == EntryType.File ?
                 AccessRight.NoObjectAccess : AccessRight.NoDomainAccess;
 
-        return new AccessObject(id, domainId, accessRight, object.Type);
+        return new AccessObject(domainId, object.ObjectId, object.Index, accessRight, object.Type);
     }
 
     @Override
-    public AccessObject GetRandomEntry(int domainId) {
-        final var objectId = ThreadLocalRandom.current().nextInt(_domains + _objects);
-        return GetEntry(domainId, objectId);
+    public AccessObject GetRandomObject(int domainId) {
+        final var length = _domains + _objects;
+        var randomIndex = ThreadLocalRandom.current().nextInt(length);
+        // Ensure not accessing same domain (if applicable)
+        var object = _data.get(randomIndex);
+        while (object.AccessObject.Type == EntryType.Domain && object.AccessObject.ObjectId == domainId)
+        {
+            randomIndex = ThreadLocalRandom.current().nextInt(length);
+            object = _data.get(randomIndex);
+        }
+
+        return GetObject(domainId, randomIndex);
     }
 
     @Override
@@ -69,33 +76,34 @@ public final class AccessList implements IAccessible {
 
         var random = ThreadLocalRandom.current();
         final int length = _domains + _objects;
-        for (var i = 0; i < length; i++) {
+        for (var index = 0; index < length; index++) {
             // Create objects
-            if (i < _objects) {
+            if (index < _objects) {
 
-                final var object = new AccessObject(i, i, AccessRight.NoObjectAccess, EntryType.Object);
-                final var accessPair = new AccessPair(object, null);
+                final var object = new AccessObject(-1, index, index, AccessRight.NoObjectAccess, EntryType.File);
+                final var accessPair = new AccessPair(object);
                 _data.add(accessPair);
 
-                for (int j = 0, n = 0; j < _domains; j++) {
+                for (var domainId = 0; domainId < _domains; domainId++) {
 
                     // Get random object right and check if valid
                     final var objectRight = rights[random.nextInt(0, 4)];
                     if (objectRight == AccessRight.NoObjectAccess)
                         continue;
 
-                    AddEntry(accessPair, new AccessObject(n++, j, objectRight, EntryType.Domain));
+                    AddEntry(accessPair, new AccessObject(domainId, domainId, index, objectRight, EntryType.Domain));
                 }
             }
             else {
 
-                final var object = new AccessObject(i - _objects, i, AccessRight.NoDomainAccess, EntryType.Domain);
-                final var accessPair = new AccessPair(object, null);
+                final var headObjectId = index - _objects;
+                final var object = new AccessObject(-1, headObjectId, index, AccessRight.NoDomainAccess, EntryType.Domain);
+                final var accessPair = new AccessPair(object);
                 _data.add(accessPair);
 
-                for (int j = 0, n = 0; j < _domains; j++) {
+                for (var domainId = 0; domainId < _domains; domainId++) {
                     // Check for switching to same domain (and continue)
-                    if (j == i - _objects)
+                    if (domainId == headObjectId)
                         continue;
 
                     // Get random domain right and check if valid
@@ -103,7 +111,7 @@ public final class AccessList implements IAccessible {
                     if (domainRight != AccessRight.AllowSwitch)
                         continue;
 
-                    AddEntry(accessPair, new AccessObject(n++, j, domainRight, EntryType.Domain));
+                    AddEntry(accessPair, new AccessObject(domainId, domainId, index, domainRight, EntryType.Domain));
                 }
             }
         }
@@ -115,7 +123,7 @@ public final class AccessList implements IAccessible {
         for (var i = 0; i < _objects; i++) {
 
             var pair = _data.get(i);
-            System.out.printf("\t F%d -->", pair.AccessObject.Id);
+            System.out.printf("\t F%d -->", pair.AccessObject.ObjectId);
             final var node = pair.Node;
             PrintLink(node);
         }
@@ -124,7 +132,7 @@ public final class AccessList implements IAccessible {
         for (var i = _objects; i < _domains + _objects; i++) {
 
             var pair = _data.get(i);
-            System.out.printf("\t D%d -->", pair.AccessObject.Id);
+            System.out.printf("\t D%d -->", pair.AccessObject.ObjectId);
             final var node = pair.Node;
             PrintLink(node);
         }
@@ -160,9 +168,9 @@ public final class AccessList implements IAccessible {
 
         while (accessNode != null) {
             if (accessNode.Next != null)
-                System.out.printf("\tD%d[%s]\t-->", accessNode.AccessObject.Index, accessNode.AccessObject.AccessRight);
+                System.out.printf("\tD%d[%s]\t-->", accessNode.AccessObject.ObjectId, accessNode.AccessObject.AccessRight);
             else
-                System.out.printf("\tD%d[%s]", accessNode.AccessObject.Index, accessNode.AccessObject.AccessRight);
+                System.out.printf("\tD%d[%s]", accessNode.AccessObject.ObjectId, accessNode.AccessObject.AccessRight);
 
             accessNode = accessNode.Next;
         }

@@ -19,7 +19,7 @@ public final class CapabilityList implements IAccessible {
     }
 
     @Override
-    public AccessObject GetEntry(int domainId, int objectId) {
+    public AccessObject GetObject(int domainId, int objectIndex) {
 
         final var accessPair = _data.get(domainId);
         final var object = accessPair.AccessObject;
@@ -32,9 +32,7 @@ public final class CapabilityList implements IAccessible {
         while (iter != null) {
             // Found access object
             final var currentObject = iter.AccessObject;
-            if (currentObject.Index == objectId) {
-                if (currentObject.Index - _objects == domainId)
-                    break;
+            if (currentObject.Index == objectIndex) {
                 return currentObject;
             }
 
@@ -42,16 +40,26 @@ public final class CapabilityList implements IAccessible {
         }
 
         // Create invalid access object
-        final var accessRight = object.Type == EntryType.Object ?
+        final var accessRight = object.Type == EntryType.File ?
                 AccessRight.NoObjectAccess : AccessRight.NoDomainAccess;
 
-        return new AccessObject(domainId, objectId, accessRight, object.Type);
+        return new AccessObject(domainId, object.ObjectId, objectIndex, accessRight, object.Type);
     }
 
     @Override
-    public AccessObject GetRandomEntry(int domainId) {
-        final var objectId = ThreadLocalRandom.current().nextInt(_domains + _objects);
-        return GetEntry(domainId, objectId);
+    public AccessObject GetRandomObject(int domainId) {
+        final var length = _domains + _objects;
+        var randomIndex = ThreadLocalRandom.current().nextInt(length);
+        var object = GetObject(domainId, randomIndex);
+
+        // Ensure not accessing same domain (if applicable)
+        while (object.ObjectId == domainId)
+        {
+            randomIndex = ThreadLocalRandom.current().nextInt(length);
+            object = GetObject(domainId, randomIndex);
+        }
+
+        return object;
     }
 
     @Override
@@ -70,26 +78,28 @@ public final class CapabilityList implements IAccessible {
 
         var random = ThreadLocalRandom.current();
         final var length = _domains + _objects;
-        for (var i = 0; i < _domains; i++) {
+        for (var domainId = 0; domainId < _domains; domainId++) {
 
-            final var domain = new AccessObject(i, i, AccessRight.NoDomainAccess, EntryType.Domain);
-            final var accessPair = new AccessPair(domain, null);
+            final var domain = new AccessObject(domainId, domainId, domainId, AccessRight.NoDomainAccess, EntryType.Domain);
+            final var accessPair = new AccessPair(domain);
             _data.add(accessPair);
 
             // Create objects
-            for (int j = 0, n = 0; j < length; j++) {
+            for (var index = 0; index < length; index++) {
 
-                if (j < _objects) {
+                if (index < _objects) {
                     // Get random object right and check if valid
                     final var objectRight = rights[random.nextInt(0, 4)];
                     if (objectRight == AccessRight.NoObjectAccess)
                         continue;
 
-                    AddEntry(accessPair, new AccessObject(j, j, objectRight, EntryType.Object));
+                    final var objectId = index;
+                    AddEntry(accessPair, new AccessObject(domainId, objectId, index, objectRight, EntryType.File));
                 }
                 else {
                     // Check for switching to same domain (and continue)
-                    if (j - _objects == i)
+                    final var objectId = index - _objects;
+                    if (objectId == domainId)
                         continue;
 
                     // Get random domain right and check if valid
@@ -97,7 +107,7 @@ public final class CapabilityList implements IAccessible {
                     if (domainRight != AccessRight.AllowSwitch)
                         continue;
 
-                    AddEntry(accessPair, new AccessObject(j - _objects, j, domainRight, EntryType.Domain));
+                    AddEntry(accessPair, new AccessObject(domainId, objectId, index, domainRight, EntryType.Domain));
                 }
             }
         }
@@ -109,7 +119,7 @@ public final class CapabilityList implements IAccessible {
         for (var i = 0; i < _domains; i++) {
 
             var pair = _data.get(i);
-            System.out.printf("\t D%d -->", pair.AccessObject.Id);
+            System.out.printf("\t D%d -->", pair.AccessObject.ObjectId);
             final var node = pair.Node;
             PrintLink(node);
         }
@@ -144,11 +154,11 @@ public final class CapabilityList implements IAccessible {
     private void PrintLink(AccessNode accessNode) {
 
         while (accessNode != null) {
-            final var representation = accessNode.AccessObject.Type == EntryType.Object ? 'F' : 'D';
+            final var representation = accessNode.AccessObject.Type == EntryType.File ? 'F' : 'D';
             if (accessNode.Next != null)
-                System.out.printf("\t%c%d[%s]\t-->", representation, accessNode.AccessObject.Id, accessNode.AccessObject.AccessRight);
+                System.out.printf("\t%c%d[%s]\t-->", representation, accessNode.AccessObject.ObjectId, accessNode.AccessObject.AccessRight);
             else
-                System.out.printf("\t%c%d[%s]", representation, accessNode.AccessObject.Id, accessNode.AccessObject.AccessRight);
+                System.out.printf("\t%c%d[%s]", representation, accessNode.AccessObject.ObjectId, accessNode.AccessObject.AccessRight);
 
             accessNode = accessNode.Next;
         }
